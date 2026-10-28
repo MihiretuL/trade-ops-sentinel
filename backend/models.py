@@ -99,9 +99,11 @@ class WireEvent(EvidenceEvent):
 
 
 class TelemetryEvent(EvidenceEvent):
-    event_type: Literal["gateway_timeout", "risk_pass", "database_error", "drop_copy_fill"]
+    event_type: Literal["gateway_timeout", "risk_pass", "database_error", "drop_copy_fill", "fix_wire_capture"]
     order_id: str | None = None
     details: dict[str, Any] = Field(default_factory=dict)
+    direction: Direction | None = None
+    raw_payload: str | None = None
 
 
 class OMSRecord(BaseModel):
@@ -192,3 +194,48 @@ class ReconciliationDiscrepancy(BaseModel):
     oms_status: str
     event_ids: tuple[str, ...]
     description: str
+
+
+class ReconciliationBreak(BaseModel):
+    incident_id: str
+    cl_ord_id: str
+    symbol: str
+    drop_copy_filled_qty: Decimal
+    oms_filled_qty: Decimal
+    drop_copy_notional: Decimal
+    oms_status: str
+    exec_ids: tuple[str, ...]
+    event_ids: tuple[str, ...]
+    break_type: str
+    description: str
+
+
+class ReportFact(BaseModel):
+    claim: str
+    event_ids: tuple[str, ...]
+    fix_tags: tuple[int, ...] = ()
+
+
+class SubwayNode(BaseModel):
+    name: str
+    status: str
+    event_ids: tuple[str, ...] = ()
+
+
+class DeterministicInvestigationReport(BaseModel):
+    incident_id: str
+    title: str
+    scenario_code: str
+    primary_failure_category: str
+    severity: str
+    summary: str
+    total_exposure_dollars: Decimal
+    is_in_flight_unknown: bool
+    safe_to_resend: bool
+    order_statuses: dict[str, str]
+    facts: tuple[ReportFact, ...]
+    unknowns: tuple[str, ...]
+    reconciliation_breaks: tuple[ReconciliationBreak, ...]
+    subway_map_status: tuple[SubwayNode, ...]
+    event_ids: tuple[str, ...]
+    source: str = "deterministic_local_engine"
