@@ -228,6 +228,9 @@ def _build_report(
     unknown_orders = [order for order in orders if order.is_in_flight_unknown]
     safe_to_resend = bool(orders) and all(order.safe_to_resend for order in orders) and not unknown_orders
     event_ids = tuple(event.event_id for event in incident.events)
+    fix_messages = [parse_fix_message(event.wire) for event in incident.events if isinstance(event, WireEvent)]
+    telemetry_types = {event.event_type for event in incident.events if isinstance(event, TelemetryEvent)}
+    msg_types = {message.msg_type for message in fix_messages}
     facts: list[ReportFact] = []
     for order in orders:
         evidence = tuple(order.event_history)
@@ -240,16 +243,18 @@ def _build_report(
     for discrepancy in breaks:
         facts.append(ReportFact(claim=discrepancy.description, event_ids=discrepancy.event_ids, fix_tags=(11, 17, 31, 32, 39, 150)))
 
-    if incident.incident_id == "INC-101":
-        category, severity = "sequence_gap_resend", "high"
-    elif incident.incident_id == "INC-102":
-        category, severity = "cancel_fill_race", "critical"
-    elif incident.incident_id == "INC-103":
-        category, severity = "in_flight_unknown", "critical"
-    elif incident.incident_id == "INC-104":
-        category, severity = "protocol_and_risk_reject", "high"
-    elif incident.incident_id == "INC-105":
+    if breaks:
         category, severity = "drop_copy_sql_reconciliation", "critical"
+    elif "gateway_timeout" in telemetry_types:
+        category, severity = "in_flight_unknown", "critical"
+    elif any(message.msg_type == "9" for message in fix_messages):
+        category, severity = "cancel_fill_race", "critical"
+    elif "network_packet_drop" in telemetry_types or "2" in msg_types or "4" in msg_types:
+        category, severity = "sequence_gap_resend", "high"
+    elif "3" in msg_types or any(message.get(39) == "8" for message in fix_messages):
+        category, severity = "protocol_and_risk_reject", "high"
+    elif any(order.status.value == "filled" for order in orders):
+        category, severity = "market_order_flow", "info"
     else:
         category, severity = "custom_fix_investigation", "high"
 
@@ -257,7 +262,7 @@ def _build_report(
     unknowns: list[str] = []
     if unknown_orders:
         unknowns.append("Exchange receipt or execution cannot be determined from current telemetry; do not resend until independently resolved.")
-    if incident.incident_id == "INC-101":
+    if category == "sequence_gap_resend" and "4" in msg_types and not any(message.msg_type == "8" for message in fix_messages):
         unknowns.append("Gap fill resolves the indicated session sequence interval only; the captured NewOrderSingle has no exchange acknowledgment.")
     if not unknowns and warnings:
         unknowns.extend(warnings)
@@ -265,9 +270,9 @@ def _build_report(
     statuses = {order.root_cl_ord_id: order.status.value for order in orders}
     nodes = (
         SubwayNode(name="OMS", status="discrepancy" if breaks else "observed", event_ids=event_ids),
-        SubwayNode(name="Risk", status="rejected" if incident.incident_id == "INC-104" else "passed" if incident.incident_id == "INC-103" else "not_observed", event_ids=tuple(event.event_id for event in incident.events if isinstance(event, TelemetryEvent) and event.event_type == "risk_pass")),
-        SubwayNode(name="FIX Gateway", status="timeout" if incident.incident_id == "INC-103" else "protocol_reject" if incident.incident_id == "INC-104" else "observed", event_ids=event_ids),
-        SubwayNode(name="Exchange", status="unknown" if unknown_orders else "filled" if any(order.status.value == "filled" for order in orders) else "rejected" if any(order.status.value == "rejected" for order in orders) else "sequence_recovery", event_ids=event_ids),
+        SubwayNode(name="Risk", status="rejected" if category == "protocol_and_risk_reject" else "passed" if "risk_pass" in telemetry_types else "not_observed", event_ids=tuple(event.event_id for event in incident.events if isinstance(event, TelemetryEvent) and event.event_type == "risk_pass")),
+        SubwayNode(name="FIX Gateway", status="timeout" if category == "in_flight_unknown" else "protocol_reject" if category == "protocol_and_risk_reject" else "sequence_gap" if category == "sequence_gap_resend" else "observed", event_ids=event_ids),
+        SubwayNode(name="Exchange", status="unknown" if unknown_orders else "filled" if any(order.status.value == "filled" for order in orders) else "rejected" if any(order.status.value == "rejected" for order in orders) else "sequence_recovery" if category == "sequence_gap_resend" else "observed", event_ids=event_ids),
     )
     return DeterministicInvestigationReport(
         incident_id=incident.incident_id,

@@ -12,6 +12,7 @@ import { api, WS_URL } from "@/lib/api";
 import type {
   AIDiagnosis,
   DeterministicReport,
+  BookSnapshot,
   IncidentDetail,
   IncidentListItem,
   IntakeResult,
@@ -29,6 +30,9 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [focusEventId, setFocusEventId] = useState<string | null>(null);
+  const [books, setBooks] = useState<BookSnapshot[]>([]);
+  const [marketBusy, setMarketBusy] = useState(false);
+  const [chaosBusy, setChaosBusy] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   const notify = useCallback((message: string) => {
@@ -80,6 +84,14 @@ export default function Home() {
     [notify],
   );
 
+  const loadBook = useCallback(async () => {
+    try {
+      setBooks((await api.orderbook()).symbols);
+    } catch {
+      /* Backend status is surfaced through the health request. */
+    }
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void loadIncidents();
@@ -93,6 +105,19 @@ export default function Home() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [selectedId, loadDetail]);
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => {
+      void loadBook();
+    }, 0);
+    const timer = window.setInterval(() => {
+      void loadBook();
+    }, 5000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(timer);
+    };
+  }, [loadBook]);
 
   useEffect(() => {
     let reconnectTimer: number | undefined;
@@ -110,6 +135,8 @@ export default function Home() {
             event?: unknown;
             report?: DeterministicReport;
             diagnosis?: AIDiagnosis;
+            book?: BookSnapshot;
+            books?: BookSnapshot[];
           };
           if (
             payload.type === "telemetry_event" &&
@@ -128,6 +155,16 @@ export default function Home() {
             );
             void loadIncidents();
           }
+          if (payload.type === "market_book") {
+            if (payload.book)
+              setBooks((current) =>
+                current.map((item) =>
+                  item.symbol === payload.book?.symbol ? payload.book! : item,
+                ),
+              );
+          }
+          if (payload.type === "market_books" && payload.books)
+            setBooks(payload.books);
           if (
             payload.type === "ai_diagnosis" &&
             payload.incident_id === selectedId &&
@@ -189,6 +226,53 @@ export default function Home() {
     }
   };
 
+  const runMarket = async () => {
+    setMarketBusy(true);
+    try {
+      const result = await api.marketTick(5);
+      setBooks(result.books);
+      notify(
+        `Matched ${result.batch_size} live market-flow orders against the local book`,
+      );
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Market flow failed");
+    } finally {
+      setMarketBusy(false);
+    }
+  };
+
+  const injectPrompt = async (prompt: string) => {
+    setChaosBusy(true);
+    setBusy("chaos");
+    try {
+      const result = await api.chaosPrompt(prompt);
+      setSelectedId(result.incident_id);
+      setDiagnosis(result.diagnosis);
+      setBooks((current) =>
+        current.map((book) =>
+          book.symbol === result.book_snapshot.symbol
+            ? result.book_snapshot
+            : book,
+        ),
+      );
+      await loadIncidents();
+      await loadDetail(result.incident_id);
+      setFocusEventId(result.events[0]?.event_id ?? null);
+      notify(
+        `Red-team scenario ${result.incident_id} executed · Blue Team reconstructed from captured evidence`,
+      );
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Dynamic chaos execution failed",
+      );
+    } finally {
+      setChaosBusy(false);
+      setBusy(null);
+    }
+  };
+
   const intake = async (
     kind: "voice" | "vision" | "fix",
     value: string | File,
@@ -235,8 +319,13 @@ export default function Home() {
         selectedId={selectedId}
         connected={connected}
         busy={busy}
+        books={books}
+        marketBusy={marketBusy}
+        chaosBusy={chaosBusy}
         onSimulate={(id) => void simulate(id)}
         onInvestigate={() => void investigate()}
+        onMarket={() => void runMarket()}
+        onChaos={(prompt) => void injectPrompt(prompt)}
       />
       <div className="dashboard-grid">
         <IncidentSidebar

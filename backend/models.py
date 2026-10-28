@@ -99,7 +99,7 @@ class WireEvent(EvidenceEvent):
 
 
 class TelemetryEvent(EvidenceEvent):
-    event_type: Literal["gateway_timeout", "risk_pass", "database_error", "drop_copy_fill", "fix_wire_capture"]
+    event_type: Literal["gateway_timeout", "risk_pass", "database_error", "drop_copy_fill", "fix_wire_capture", "network_packet_drop", "market_book_snapshot"]
     order_id: str | None = None
     details: dict[str, Any] = Field(default_factory=dict)
     direction: Direction | None = None
@@ -286,3 +286,15 @@ class MultimodalIntakeResult(BaseModel):
     extracted_cl_ord_ids: list[str] = Field(default_factory=list)
     extracted_symbols: list[str] = Field(default_factory=list)
     matched_incident_id: str | None = None
+
+
+class ChaosFaultSpec(BaseModel):
+    symbol: Literal["AAPL", "NVDA", "MSFT", "SPY", "TSLA", "ESZ6"]
+    side: Literal["BUY", "SELL"] = "BUY"
+    order_qty: Decimal = Decimal("100")
+    limit_price: Decimal
+    fault_type: Literal["normal_flow", "sequence_gap", "gateway_timeout", "sql_lock", "cancel_fill_race"] = "normal_flow"
+    dropped_seq_count: int = 0
+    timeout_ms: int = 0
+    induce_sql_lock: bool = False
+    race_cancel_delay_ms: Decimal = Decimal("0")

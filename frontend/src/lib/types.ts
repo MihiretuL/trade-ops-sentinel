@@ -96,3 +96,6 @@ export type IntakeResult = {
   matched_incident_id: string | null;
 };
 export type IncidentListItem = IncidentSummary & { created_at: string; status: string };
+export type BookLevel = { price: string; quantity: string };
+export type BookSnapshot = { symbol: string; bids: BookLevel[]; asks: BookLevel[]; best_bid: string | null; best_ask: string | null; spread: string | null; mid_price: string; last_trade_price: string | null };
+export type ChaosResponse = { incident_id: string; fault_spec: { symbol: string; side: string; order_qty: string; limit_price: string; fault_type: string; dropped_seq_count: number; timeout_ms: number; induce_sql_lock: boolean; race_cancel_delay_ms: string }; report: DeterministicReport; diagnosis: AIDiagnosis; events: TelemetryEvent[]; book_snapshot: BookSnapshot; order_result: { cl_ord_id: string; cum_qty: string; leaves_qty: string; average_price: string; status: string; book_executed_notional: string } };

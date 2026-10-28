@@ -15,6 +15,27 @@ SOH = "\x01"
 PIPE = "|"
 _SUPPORTED_BEGIN_STRINGS = {"FIX.4.2", "FIX.4.4"}
 
+# Institutional FIX 4.2/4.4 tag dictionary used by report renderers and UI decoders.
+FIX_TAGS: dict[int, str] = {
+    1: "Account", 6: "AvgPx", 7: "BeginSeqNo", 8: "BeginString", 9: "BodyLength",
+    10: "CheckSum", 11: "ClOrdID", 12: "Commission", 13: "CommType", 14: "CumQty",
+    15: "Currency", 16: "EndSeqNo", 17: "ExecID", 18: "ExecInst", 19: "ExecRefID",
+    20: "ExecTransType", 21: "HandlInst", 22: "IDSource", 30: "LastMkt", 31: "LastPx",
+    32: "LastQty", 34: "MsgSeqNum", 35: "MsgType", 36: "NewSeqNo", 37: "OrderID",
+    38: "OrderQty", 39: "OrdStatus", 40: "OrdType", 41: "OrigClOrdID", 43: "PossDupFlag",
+    44: "Price", 45: "RefSeqNum", 47: "Rule80A", 49: "SenderCompID", 50: "SenderSubID",
+    52: "SendingTime", 54: "Side", 55: "Symbol", 56: "TargetCompID", 57: "TargetSubID",
+    58: "Text", 59: "TimeInForce", 60: "TransactTime", 63: "SettlmntTyp", 64: "FutSettDate",
+    75: "TradeDate", 97: "PossResend", 98: "EncryptMethod", 102: "CxlRejReason",
+    103: "OrdRejReason", 108: "HeartBtInt", 112: "TestReqID", 123: "GapFillFlag",
+    122: "OrigSendingTime", 128: "DeliverToCompID", 129: "DeliverToSubID", 141: "ResetSeqNumFlag",
+    142: "SenderLocationID", 143: "TargetLocationID", 150: "ExecType", 151: "LeavesQty",
+    167: "SecurityType", 192: "OrderQty2", 193: "FutSettDate2", 207: "SecurityExchange",
+    210: "MaxShow", 211: "PegDifference", 336: "TradingSessionID", 369: "LastMsgSeqNumProcessed",
+    371: "RefTagID", 372: "RefMsgType", 373: "SessionRejectReason", 378: "ExecRestatementReason",
+    381: "GrossTradeAmt", 432: "ExpireDate", 434: "CxlRejResponseTo", 442: "MultiLegReportingType",
+}
+
 
 class FixError(ValueError):
     """Base class for FIX framing and field errors."""

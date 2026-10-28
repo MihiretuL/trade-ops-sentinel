@@ -4,10 +4,15 @@ import {
   Activity,
   AlertTriangle,
   BrainCircuit,
+  BookOpen,
+  Flame,
   Radio,
+  Send,
   ShieldCheck,
   Wifi,
 } from "lucide-react";
+import { useState } from "react";
+import type { BookSnapshot } from "@/lib/types";
 
 const scenarios = [
   { id: "INC-101", label: "SEQ GAP", icon: "01" },
@@ -21,17 +26,41 @@ type Props = {
   selectedId: string;
   connected: boolean;
   busy: string | null;
+  books: BookSnapshot[];
+  marketBusy: boolean;
+  chaosBusy: boolean;
   onSimulate: (id: string) => void;
   onInvestigate: () => void;
+  onMarket: () => void;
+  onChaos: (prompt: string) => void;
 };
 
 export function ChaosInjectorBar({
   selectedId,
   connected,
   busy,
+  books,
+  marketBusy,
+  chaosBusy,
   onSimulate,
   onInvestigate,
+  onMarket,
+  onChaos,
 }: Props) {
+  const [prompt, setPrompt] = useState("");
+  const chaosPresets = [
+    "Fill 800-share SPY buy, then race its cancel",
+    "Drop 3 outbound packets on AAPL during an order burst",
+    "Fill a large MSFT order, then lock the OMS SQL commit",
+  ];
+  const submitChaos = (value = prompt) => {
+    if (!value.trim() || chaosBusy) return;
+    onChaos(value.trim());
+  };
+  const formatPrice = (value: string | null) =>
+    value === null
+      ? "—"
+      : `$${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return (
     <header className="top-shell">
       <div className="brand-block">
@@ -102,6 +131,73 @@ export function ChaosInjectorBar({
           SOH-framed messages
         </div>
       )}
+      <div className="market-strip">
+        <div className="market-strip-title">
+          <BookOpen size={13} />
+          <span>LIVE LIMIT ORDER BOOK</span>
+          <small>PRICE-TIME MATCHING</small>
+        </div>
+        {books
+          .filter((book) =>
+            ["AAPL", "NVDA", "MSFT", "SPY", "TSLA"].includes(book.symbol),
+          )
+          .map((book) => (
+            <div className="ticker-cell" key={book.symbol}>
+              <b>{book.symbol}</b>
+              <span className="ticker-bid">{formatPrice(book.best_bid)}</span>
+              <i>/</i>
+              <span className="ticker-ask">{formatPrice(book.best_ask)}</span>
+              <small>LAST {formatPrice(book.last_trade_price)}</small>
+            </div>
+          ))}
+        <button
+          className="market-tick-button"
+          disabled={!connected || marketBusy}
+          onClick={onMarket}
+        >
+          {marketBusy ? <span className="spinner" /> : <Activity size={13} />}
+          {marketBusy ? "MATCHING…" : "SIMULATE LIVE FLOW"}
+        </button>
+      </div>
+      <div className="redteam-bar">
+        <div className="redteam-title">
+          <Flame size={14} />
+          <span>RED-TEAM META AI CHAOS</span>
+          <small>UNSCRIPTED · BLUE TEAM BLIND</small>
+        </div>
+        <div className="chaos-prompt-wrap">
+          <input
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") submitChaos();
+            }}
+            placeholder="Describe a market or infrastructure fault…"
+            maxLength={4000}
+          />
+          <button
+            disabled={!connected || chaosBusy || !prompt.trim()}
+            onClick={() => submitChaos()}
+          >
+            {chaosBusy ? <span className="spinner" /> : <Send size={13} />}
+            {chaosBusy ? "INJECTING" : "LAUNCH ATTACK"}
+          </button>
+        </div>
+        <div className="chaos-preset-chips">
+          {chaosPresets.map((item) => (
+            <button
+              key={item}
+              disabled={!connected || chaosBusy}
+              onClick={() => {
+                setPrompt(item);
+                submitChaos(item);
+              }}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }

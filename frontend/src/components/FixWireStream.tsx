@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -52,6 +52,26 @@ const tagNames: Record<string, string> = {
   "7": "BeginSeqNo",
   "16": "EndSeqNo",
   "36": "NewSeqNo",
+  "6": "AvgPx",
+  "12": "Commission",
+  "13": "CommType",
+  "15": "Currency",
+  "18": "ExecInst",
+  "20": "ExecTransType",
+  "21": "HandlInst",
+  "30": "LastMkt",
+  "47": "Rule80A",
+  "50": "SenderSubID",
+  "57": "TargetSubID",
+  "59": "TimeInForce",
+  "63": "SettlmntTyp",
+  "97": "PossResend",
+  "98": "EncryptMethod",
+  "108": "HeartBtInt",
+  "112": "TestReqID",
+  "141": "ResetSeqNumFlag",
+  "167": "SecurityType",
+  "207": "SecurityExchange",
 };
 const msgTypes: Record<string, string> = {
   "2": "ResendRequest",
@@ -81,6 +101,17 @@ export function FixWireStream({
   const [tab, setTab] = useState<"wire" | "orders" | "recon">("wire");
   const [expanded, setExpanded] = useState<string | null>(focusEventId);
   const events = detail?.telemetry_events ?? EMPTY_EVENTS;
+  useEffect(() => {
+    if (!focusEventId) return;
+    const timer = window.setTimeout(() => {
+      setTab("wire");
+      setExpanded(focusEventId);
+      document
+        .getElementById(`event-${focusEventId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 40);
+    return () => window.clearTimeout(timer);
+  }, [focusEventId]);
   const sequenceGaps = useMemo(() => {
     const groups = new Map<string, TelemetryEvent[]>();
     for (const event of events) {
@@ -126,7 +157,7 @@ export function FixWireStream({
       <article
         id={`event-${event.event_id}`}
         key={event.event_id}
-        className={`event-row ${isOpen ? "expanded" : ""}`}
+        className={`event-row ${isOpen ? "expanded" : ""} ${focusEventId === event.event_id ? "citation-target" : ""}`}
       >
         <button
           className="event-summary"

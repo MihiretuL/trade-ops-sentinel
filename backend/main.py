@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from . import db
 from .ai_investigator import VerifiableAIInvestigator
+from .chaos_injector import inject_natural_language_chaos, step_live_market
 from .config import get_settings
 from .fix_protocol import parse_fix_message
 from .models import (
@@ -24,6 +25,8 @@ from .models import (
     WireEvent,
 )
 from .multimodal_intake import analyze_blotter_screenshot, transcribe_voice_squawk
+from .models import ChaosFaultSpec
+from .order_book import LimitOrderBook
 from .reconstructor import FixReconstructor
 from .simulator import all_incidents
 from .tcp_harness import LocalFIXExchangeHarness
@@ -72,6 +75,7 @@ class WebSocketHub:
 
 
 hub = WebSocketHub()
+order_book = LimitOrderBook()
 
 
 def _json_value(value: Any) -> Any:
@@ -135,6 +139,37 @@ async def incident_detail(incident_id: str) -> dict[str, Any]:
         "ai_diagnosis": (db.get_ai_diagnosis(path, incident_id).model_dump(mode="json")
                  if db.get_ai_diagnosis(path, incident_id) else None),
     }
+
+
+@app.get("/api/orderbook")
+async def orderbook_snapshot() -> dict[str, Any]:
+    return {"symbols": order_book.get_all_snapshots(), "source": "local_order_book_digital_twin"}
+
+
+class MarketTickRequest(BaseModel):
+    batch_size: int = Field(default=5, ge=1, le=100)
+
+
+@app.post("/api/market/tick")
+async def market_tick(request: MarketTickRequest) -> dict[str, Any]:
+    return await step_live_market(_db_path(), order_book=order_book, batch_size=request.batch_size, broadcast=hub.broadcast)
+
+
+class ChaosPromptRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=4000)
+
+
+@app.post("/api/chaos/inject-prompt")
+async def inject_chaos_prompt(request: ChaosPromptRequest) -> dict[str, Any]:
+    try:
+        return await inject_natural_language_chaos(
+            request.prompt,
+            _db_path(),
+            order_book=order_book,
+            broadcast=hub.broadcast,
+        )
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.post("/api/incidents/{incident_id}/simulate-tcp")

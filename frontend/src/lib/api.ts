@@ -1,4 +1,4 @@
-import type { AIDiagnosis, IncidentDetail, IncidentListItem, IntakeResult } from "@/lib/types";
+import type { AIDiagnosis, BookSnapshot, ChaosResponse, IncidentDetail, IncidentListItem, IntakeResult } from "@/lib/types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws/stream";
@@ -24,4 +24,7 @@ export const api = {
   screenshot: (caption: string) => request<{ intake: IntakeResult; matched_report: IncidentDetail["report"] | null }>("/api/intake/blotter-screenshot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caption }) }),
   screenshotFile: (file: File) => { const body = new FormData(); body.append("image", file); return request<{ intake: IntakeResult; matched_report: IncidentDetail["report"] | null }>("/api/intake/blotter-screenshot", { method: "POST", body }); },
   ingestFix: (raw: string) => request<{ report: IncidentDetail["report"] }>("/api/ingest/raw-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ raw_fix_lines: raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean), direction: "inbound" }) }),
+  orderbook: () => request<{ symbols: BookSnapshot[] }>("/api/orderbook"),
+  marketTick: (batchSize = 5) => request<{ trades: unknown[]; books: BookSnapshot[]; batch_size: number }>("/api/market/tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ batch_size: batchSize }) }),
+  chaosPrompt: (prompt: string) => request<ChaosResponse>("/api/chaos/inject-prompt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) }),
 };
