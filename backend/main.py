@@ -8,11 +8,12 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from . import db
+from .ai_investigator import VerifiableAIInvestigator
 from .config import get_settings
 from .fix_protocol import parse_fix_message
 from .models import (
@@ -22,6 +23,7 @@ from .models import (
     TelemetryEvent,
     WireEvent,
 )
+from .multimodal_intake import analyze_blotter_screenshot, transcribe_voice_squawk
 from .reconstructor import FixReconstructor
 from .simulator import all_incidents
 from .tcp_harness import LocalFIXExchangeHarness
@@ -210,6 +212,68 @@ async def ingest_raw_fix(request: RawFIXIngestRequest) -> dict[str, Any]:
     report = db.persist_custom_incident(_db_path(), fixture, reconstructor, results)
     await hub.broadcast({"type": "investigation_update", "incident_id": incident_id, "report": report.model_dump(mode="json")})
     return {"report": report.model_dump(mode="json")}
+
+
+@app.post("/api/incidents/{incident_id}/investigate")
+async def investigate_incident(incident_id: str) -> dict[str, Any]:
+    investigator = VerifiableAIInvestigator(_db_path())
+    try:
+        diagnosis = await investigator.investigate(incident_id)
+        db.persist_ai_diagnosis(_db_path(), incident_id, diagnosis)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    await hub.broadcast({
+        "type": "ai_diagnosis",
+        "incident_id": incident_id,
+        "diagnosis": diagnosis.model_dump(mode="json"),
+    })
+    return diagnosis.model_dump(mode="json")
+
+
+async def _intake_payload(request: Request, *, modality: str) -> bytes | str:
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
+        form = await request.form()
+        text_key = "transcript" if modality == "VOICE_SQUAWK" else "caption"
+        if form.get(text_key):
+            return str(form[text_key])
+        upload_key = "audio" if modality == "VOICE_SQUAWK" else "image"
+        upload = form.get(upload_key)
+        if upload is not None and hasattr(upload, "read"):
+            return await upload.read()
+        raise HTTPException(status_code=422, detail=f"Provide a {text_key} or {upload_key} upload")
+    try:
+        payload = await request.json()
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=422, detail="Provide JSON transcript/caption or multipart file upload") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=422, detail="Intake request must be a JSON object")
+    key = "transcript" if modality == "VOICE_SQUAWK" else "caption"
+    if not isinstance(payload.get(key), str):
+        raise HTTPException(status_code=422, detail=f"JSON {key} must be a string")
+    return payload[key]
+
+
+@app.post("/api/intake/voice-squawk")
+async def intake_voice_squawk(request: Request) -> dict[str, Any]:
+    payload = await _intake_payload(request, modality="VOICE_SQUAWK")
+    result = transcribe_voice_squawk(payload, _db_path())
+    matched_report = db.get_deterministic_report(_db_path(), result.matched_incident_id) if result.matched_incident_id else None
+    return {
+        "intake": result.model_dump(mode="json"),
+        "matched_report": matched_report.model_dump(mode="json") if matched_report else None,
+    }
+
+
+@app.post("/api/intake/blotter-screenshot")
+async def intake_blotter_screenshot(request: Request) -> dict[str, Any]:
+    payload = await _intake_payload(request, modality="BLOTTER_SCREENSHOT")
+    result = analyze_blotter_screenshot(payload, _db_path())
+    matched_report = db.get_deterministic_report(_db_path(), result.matched_incident_id) if result.matched_incident_id else None
+    return {
+        "intake": result.model_dump(mode="json"),
+        "matched_report": matched_report.model_dump(mode="json") if matched_report else None,
+    }
 
 
 @app.websocket("/ws/stream")

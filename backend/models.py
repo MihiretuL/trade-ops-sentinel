@@ -239,3 +239,50 @@ class DeterministicInvestigationReport(BaseModel):
     subway_map_status: tuple[SubwayNode, ...]
     event_ids: tuple[str, ...]
     source: str = "deterministic_local_engine"
+
+
+class EvidenceCitation(BaseModel):
+    event_id: str
+    fix_tags: list[str] = Field(default_factory=list)
+    claim: str
+
+
+class HypothesisRanking(BaseModel):
+    hypothesis: str
+    confidence: Literal["HIGH", "MEDIUM", "LOW"]
+    supporting_event_ids: list[str] = Field(default_factory=list)
+    ruled_out_alternatives: list[str] = Field(default_factory=list)
+
+
+class ReadOnlyRemediationArtifact(BaseModel):
+    title: str
+    target_system: Literal["FIX_SESSION", "OMS_SQL", "NETWORK", "EXCHANGE_DESK"]
+    artifact_type: Literal["FIX_MESSAGE", "SQL_PATCH", "PYTHON_DIAGNOSTIC", "RUNBOOK_STEPS"]
+    code_or_command: str
+    requires_human_approval: bool = True
+    safety_warning: str
+
+
+class VerifiedAIDiagnosis(BaseModel):
+    incident_id: str
+    model_used: str
+    tool_calls_executed: list[str] = Field(default_factory=list)
+    executive_summary: str
+    proven_claims: list[EvidenceCitation] = Field(default_factory=list)
+    ranked_hypotheses: list[HypothesisRanking] = Field(default_factory=list)
+    explicit_unknowns: list[str] = Field(default_factory=list)
+    trader_squawk_update: str
+    engineering_escalation_summary: str
+    remediation_artifacts: list[ReadOnlyRemediationArtifact] = Field(default_factory=list)
+    safe_to_resend: bool
+    verification_passed: bool = False
+    verification_warnings: list[str] = Field(default_factory=list)
+
+
+class MultimodalIntakeResult(BaseModel):
+    modality: Literal["VOICE_SQUAWK", "BLOTTER_SCREENSHOT"]
+    model_used: Literal["Muse Voice Transcribe", "Muse Spark Vision"]
+    extracted_text: str
+    extracted_cl_ord_ids: list[str] = Field(default_factory=list)
+    extracted_symbols: list[str] = Field(default_factory=list)
+    matched_incident_id: str | None = None

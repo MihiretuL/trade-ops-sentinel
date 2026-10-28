@@ -16,6 +16,7 @@ from .models import (
     DeterministicInvestigationReport,
     Direction,
     IncidentFixture,
+    VerifiedAIDiagnosis,
     OMSRecord,
     OrderSnapshot,
     ReconciliationBreak,
@@ -429,6 +430,31 @@ def get_deterministic_report(db_path: str, incident_id: str) -> DeterministicInv
             "SELECT deterministic_report_json FROM investigation_reports WHERE incident_id=?", (incident_id,)
         ).fetchone()
         return DeterministicInvestigationReport.model_validate_json(row[0]) if row else None
+
+
+def persist_ai_diagnosis(db_path: str, incident_id: str, diagnosis: VerifiedAIDiagnosis) -> None:
+    """Persist a schema-validated diagnosis without modifying deterministic report data."""
+    init_db(db_path)
+    with _database(db_path) as connection:
+        cursor = connection.execute(
+            "UPDATE investigation_reports SET ai_diagnosis_json=?,updated_at=? WHERE incident_id=?",
+            (diagnosis.model_dump_json(), _utcnow(), incident_id),
+        )
+        if cursor.rowcount == 0:
+            raise KeyError(f"Incident {incident_id!r} has no deterministic report")
+
+
+def get_ai_diagnosis(db_path: str, incident_id: str) -> VerifiedAIDiagnosis | None:
+    """Return a stored verified diagnosis, if one has been generated."""
+    init_db(db_path)
+    with _database(db_path) as connection:
+        row = connection.execute(
+            "SELECT ai_diagnosis_json FROM investigation_reports WHERE incident_id=?",
+            (incident_id,),
+        ).fetchone()
+        if row is None or row[0] is None:
+            return None
+        return VerifiedAIDiagnosis.model_validate_json(row[0])
 
 
 def list_incidents(db_path: str) -> list[dict[str, Any]]:

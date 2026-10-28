@@ -502,3 +502,8 @@ class FixReconstructor:
             return None
         root = self._clord_to_root.get(identifier, self._orderid_to_root.get(identifier, identifier))
         return self._orders.get(root)
+
+
+
+# Public task terminology; both names refer to the same deterministic engine.
+IncidentReconstructor = FixReconstructor
