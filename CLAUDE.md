@@ -3,7 +3,7 @@
 ## 1. Project Identity & Problem Statement
 
 - **Project Name:** TradeOps Sentinel (`trade-ops-sentinel`)
-- **Hackathon Track:** Indie Developer ($400K Pool) — *Build for Your World* & *Push the Frontier*
+- **Hackathon Track:** Indie Developer ($400K Pool) — _Build for Your World_ & _Push the Frontier_
 - **Target Bonus Prizes:**
   1. **Best Build on Meta Open Weight Models ($10K):** Uses `meta-models/muse-spark-open-1026` on Baseten / Fireworks.
   2. **Best Agentic Use-Case ($5K):** Autonomous, verifiable multi-step tool-calling diagnostic agent.
@@ -12,16 +12,16 @@
 
 ## 2. Complete Tech Stack & Architecture
 
-| Layer | Technology | Role in `trade-ops-sentinel` |
-| :--- | :--- | :--- |
-| **Backend API & Streaming** | **Python 3.11+ & FastAPI (`uvicorn`, `websockets`)** | REST endpoints + live WebSocket feed for real-time FIX wire streaming, fault injection, and agent execution. |
-| **Protocol & State Engine** | **Custom FIX 4.2/4.4 Engine (`fix_protocol.py`, `reconstructor.py`)** | Parses SOH (`\x01`) and pipe (`|`) FIX fixtures, validates `BodyLength (9)` & modulo-256 `CheckSum (10)`, tracks directional `MsgSeqNum (34)`, deduplicates `ExecID (17)` / `PossDupFlag (43)`, and chains `ClOrdID (11)` <- `OrigClOrdID (41)` using `Decimal` arithmetic. |
-| **Live Exchange Harness** | **Python `asyncio` TCP Loopback (`tcp_harness.py`)** | Runs a local FIX Initiator (Desk OMS) <-> FIX Acceptor (Exchange Gateway) over TCP with a Chaos Fault Injector using realistic tickers (`AAPL`, `NVDA`, `SPY`, `MSFT`, `ESZ6`). |
-| **Database & Reconciliation** | **SQLite (`sqlite3` / `oms.db`)** | Stores `oms_orders`, `fix_wire_events`, `network_telemetry`, and `drop_copy_fills` to detect SQL vs. Exchange Straight-Through Processing (STP) breaks. |
-| **Open-Weight Reasoning Agent** | **`Muse Spark Open` (`meta-models/muse-spark-open-1026`) via Baseten & Fireworks AI** | Runs the verifiable multi-turn tool-calling investigator (`inspect_fix_session`, `trace_order_chain`, `check_network_socket`, `reconcile_oms_sql`) with strict Pydantic citation enforcement. |
-| **Multimodal & Code AI** | **Meta Model API (`Muse Voice Transcribe`, `Muse Spark` Vision, `Muse Code`)** | 1. `Muse Voice Transcribe`: Transcribes spoken trader squawk box audio reports into structured incident queries.<br>2. `Muse Spark` Vision: Extracts `ClOrdID`s, symbols, and error states from uploaded trader blotter / Grafana screenshots.<br>3. `Muse Code`: Generates read-only recommended Python/SQL/FIX recovery scripts for the diagnosed incident. |
-| **Frontend Dashboard** | **Next.js 14+ (App Router, TypeScript), Tailwind CSS, Lucide Icons** | Dark-mode institutional trading ops terminal featuring a Plain-English Dollar Exposure Banner, 4-Node Visual Subway Map (`OMS -> Risk -> FIX Gateway -> Exchange`), Live FIX Wire Decoder, Chaos Control Bar, and Dual Stakeholder Diagnosis Panel. |
-| **Testing & QA** | **`pytest` + `httpx`** | Automated unit and integration tests for FIX checksums, BodyLength, sequence gaps, order chaining, SQL recon breaks, and AI citation validation. |
+| Layer                           | Technology                                                                            | Role in `trade-ops-sentinel`                                                                                                                                                                                                                                                                                                                                  |
+| :------------------------------ | :------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Backend API & Streaming**     | **Python 3.11+ & FastAPI (`uvicorn`, `websockets`)**                                  | REST endpoints + live WebSocket feed for real-time FIX wire streaming, fault injection, and agent execution.                                                                                                                                                                                                                                                  |
+| **Protocol & State Engine**     | **Custom FIX 4.2/4.4 Engine (`fix_protocol.py`, `reconstructor.py`)**                 | Parses SOH (`\x01`) and pipe (`                                                                                                                                                                                                                                                                                                                               | `) FIX fixtures, validates `BodyLength (9)`& modulo-256`CheckSum (10)`, tracks directional `MsgSeqNum (34)`, deduplicates `ExecID (17)`/`PossDupFlag (43)`, and chains `ClOrdID (11)`<-`OrigClOrdID (41)`using`Decimal` arithmetic. |
+| **Live Exchange Harness**       | **Python `asyncio` TCP Loopback (`tcp_harness.py`)**                                  | Runs a local FIX Initiator (Desk OMS) <-> FIX Acceptor (Exchange Gateway) over TCP with a Chaos Fault Injector using realistic tickers (`AAPL`, `NVDA`, `SPY`, `MSFT`, `ESZ6`).                                                                                                                                                                               |
+| **Database & Reconciliation**   | **SQLite (`sqlite3` / `oms.db`)**                                                     | Stores `oms_orders`, `fix_wire_events`, `network_telemetry`, and `drop_copy_fills` to detect SQL vs. Exchange Straight-Through Processing (STP) breaks.                                                                                                                                                                                                       |
+| **Open-Weight Reasoning Agent** | **`Muse Spark Open` (`meta-models/muse-spark-open-1026`) via Baseten & Fireworks AI** | Runs the verifiable multi-turn tool-calling investigator (`inspect_fix_session`, `trace_order_chain`, `check_network_socket`, `reconcile_oms_sql`) with strict Pydantic citation enforcement.                                                                                                                                                                 |
+| **Multimodal & Code AI**        | **Meta Model API (`Muse Voice Transcribe`, `Muse Spark` Vision, `Muse Code`)**        | 1. `Muse Voice Transcribe`: Transcribes spoken trader squawk box audio reports into structured incident queries.<br>2. `Muse Spark` Vision: Extracts `ClOrdID`s, symbols, and error states from uploaded trader blotter / Grafana screenshots.<br>3. `Muse Code`: Generates read-only recommended Python/SQL/FIX recovery scripts for the diagnosed incident. |
+| **Frontend Dashboard**          | **Next.js 14+ (App Router, TypeScript), Tailwind CSS, Lucide Icons**                  | Dark-mode institutional trading ops terminal featuring a Plain-English Dollar Exposure Banner, 4-Node Visual Subway Map (`OMS -> Risk -> FIX Gateway -> Exchange`), Live FIX Wire Decoder, Chaos Control Bar, and Dual Stakeholder Diagnosis Panel.                                                                                                           |
+| **Testing & QA**                | **`pytest` + `httpx`**                                                                | Automated unit and integration tests for FIX checksums, BodyLength, sequence gaps, order chaining, SQL recon breaks, and AI citation validation.                                                                                                                                                                                                              |
 
 ## 3. Target Repository Directory Structure
 
@@ -53,18 +53,21 @@ trade-ops-sentinel/
 ## 4. Implementation Precision & Acceptance Criteria (Mandatory Rules)
 
 ### A. FIX Protocol Correctness
+
 - Treat FIX messages as bytes for all protocol length and checksum calculations. `BodyLength (9)` counts bytes from the first byte of the message body (always starting with `35=`) through the delimiter immediately before `10=`. `CheckSum (10)` is the modulo-256 sum of all bytes preceding the checksum field, including the delimiter immediately before `10=`.
 - Support both ASCII SOH (`\x01`) and pipe-delimited (`|`) fixtures. Normalize delimiters only for parsing/calculation when explicitly working with pipe-delimited fixtures; preserve the original raw string and original delimiter on the parsed object, and do not claim that pipe-delimited fixtures are literal production wire traffic.
 - Validate `BeginString (8)`, `BodyLength (9)`, `CheckSum (10)` formatting (3-digit zero-padded), required structural fields (`8`, `9`, `35`, `10`), tag ordering (`8` first, `9` second, `35` third, `10` last), and malformed or duplicate tags. Return explicit structured validation errors (`validation_errors: list[str]`, `is_structurally_valid: bool`) instead of silently accepting invalid messages or silently repairing corrupted input.
 - Ensure `build_fix_message` produces strict tag ordering: `BeginString (8)`, `BodyLength (9)`, `MsgType (35)`, then the remaining body fields in order, with `CheckSum (10)` last. Document that `tag_pairs` must include `(35, msg_type)` and reject ambiguous, missing-`35`, pre-supplied `8`/`9`/`10`, or duplicate-tag input with `ValueError`.
 
 ### B. Session State and Sequence Recovery
+
 - Track sequence numbers independently for each FIX session and direction using `(SenderCompID [49], TargetCompID [56])` as the directional session key.
 - Model expected inbound sequence numbers, sequence gaps, `ResendRequest (35=2, BeginSeqNo 7, EndSeqNo 16)`, and `SequenceReset (35=4, NewSeqNo 36)`. Do not treat every `SequenceReset (35=4)` as a gap fill: distinguish `123=Y` GapFill mode from `123=N` or absent Reset mode.
 - Record retransmissions (`PossDupFlag 43=Y` or already-seen `MsgSeqNum`) and possible duplicate messages separately from new business events. Never apply the same execution twice when a message is replayed.
 - Make all sequence recovery assumptions explicit in code and tests. Simulated events must obey the exact same rules.
 
 ### C. Order State-Machine Safety
+
 - Maintain a deterministic order-state transition model using `ClOrdID (11)`, `OrigClOrdID (41)`, `OrderID (37)`, `OrdStatus (39)`, `ExecType (150)`, `LastQty (32)`, `LastPx (31)`, `CumQty (14)`, `LeavesQty (151)`, and `ExecID (17)`.
 - Distinguish an order's root identity, its cancel/replace requests (`35=F`, `35=G`), its authoritative execution events (`35=8`), and its current reported status. An `OrderCancelReject (35=9)` is NOT an execution report and must never overwrite the order's authoritative execution state (e.g., if `ORD-8821` is `Filled` via `35=8`, a subsequent `35=9` records the rejected cancel attempt while keeping the order's execution state as `Filled`).
 - Deduplicate executions using `(session_key, ExecID [17])`. Validate quantity math (`CumQty + LeavesQty == OrderQty` for active/filled orders unless canceled/rejected) and preserve event history when messages arrive late or out of order.
@@ -72,6 +75,7 @@ trade-ops-sentinel/
 - Use Python's `decimal.Decimal` for all prices (`Price 44`, `LastPx 31`, `AvgPx 6`), quantities, notional calculations, and `exposure_dollars`.
 
 ### D. Evidence and AI Boundaries
+
 - Every event must have a stable `event_id`, explicit deterministic `timestamp`, `source_layer`, and provenance. Every proven fact in a report must reference one or more actual `event_id`s and, where applicable, the exact FIX tags supporting the claim.
 - Deterministic logic—not the LLM—must establish protocol validity, order state, sequence gaps, and SQL reconciliation discrepancies.
 - Treat model output as untrusted input. Validate it against Pydantic schemas, verify that cited `event_id`s exist in the incident, reject fabricated evidence references, and retain explicit unknowns.
@@ -79,6 +83,7 @@ trade-ops-sentinel/
 - Never claim that the local simulator proves real exchange behavior or production connectivity.
 
 ### E. Simulator and Test Quality
+
 - Each incident fixture (`INC-101` through `INC-105`) must contain a coherent timeline with valid FIX messages, correct message directions, session sequence numbers, explicit deterministic timestamps (no `time.sleep` or wall-clock drift), order identifiers, and consistent database records except where the scenario intentionally introduces a failure.
 - Include unit tests in `tests/test_engine.py` for: corrupted checksums, incorrect `BodyLength`, missing required tags, duplicate tags, wrong tag ordering, sequence gaps, `GapFillFlag=Y` vs `GapFillFlag=N` sequence resets, duplicate `ExecID` / `PossDupFlag=Y` execution reports, out-of-order/late messages, cancel/fill races (`INC-102`), unresolved gateway timeouts (`INC-103`), session vs application rejects (`INC-104`), and SQL reconciliation discrepancies (`INC-105`).
 - Verify both positive and negative behavior: for each incident, assert not only what the engine detects, but also what it must NOT conclude (e.g., `INC-103` must NOT conclude the exchange rejected or did not receive the order; `INC-102` must NOT mark the order as Canceled).
@@ -95,6 +100,7 @@ trade-ops-sentinel/
 ## 6. Sprint 1 Completion Gate
 
 Before declaring Sprint 1 complete:
+
 1. Inspect the repository structure and existing changes before modifying files. Preserve unrelated work.
 2. Create or update `CLAUDE.md` with the complete project context and these implementation rules.
 3. Install declared dependencies (`requirements.txt`) into the active project `.venv`/`venv` without modifying global environments.

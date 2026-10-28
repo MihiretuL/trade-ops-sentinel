@@ -1,0 +1,98 @@
+export type SubwayNode = { name: string; status: string; event_ids: string[] };
+export type ReportFact = { claim: string; event_ids: string[]; fix_tags: number[] };
+export type ReconciliationBreak = {
+  incident_id: string;
+  cl_ord_id: string;
+  symbol: string;
+  drop_copy_filled_qty: string;
+  oms_filled_qty: string;
+  drop_copy_notional: string;
+  oms_status: string;
+  exec_ids: string[];
+  event_ids: string[];
+  break_type: string;
+  description: string;
+};
+export type DeterministicReport = {
+  incident_id: string;
+  title: string;
+  scenario_code: string;
+  primary_failure_category: string;
+  severity: string;
+  summary: string;
+  total_exposure_dollars: string;
+  is_in_flight_unknown: boolean;
+  safe_to_resend: boolean;
+  order_statuses: Record<string, string>;
+  facts: ReportFact[];
+  unknowns: string[];
+  reconciliation_breaks: ReconciliationBreak[];
+  subway_map_status: SubwayNode[];
+  event_ids: string[];
+  source: string;
+};
+export type TelemetryEvent = {
+  event_id: string;
+  incident_id: string;
+  timestamp: string;
+  sequence_index: number;
+  source_layer: string;
+  direction: string | null;
+  raw_payload: string;
+  parsed_json: { kind: string; msg_type?: string; sequence_number?: number; sender_comp_id?: string; target_comp_id?: string; tags?: Record<string, string>; event_type?: string; details?: Record<string, unknown> };
+  metadata_json: Record<string, unknown>;
+};
+export type OMSOrder = {
+  cl_ord_id: string;
+  incident_id: string;
+  symbol: string;
+  side: string;
+  order_qty: string;
+  price: string;
+  oms_status: string;
+  filled_qty: string;
+  avg_px: string;
+  updated_at: string;
+};
+export type IncidentSummary = {
+  incident_id: string;
+  title: string;
+  scenario_code: string;
+  primary_failure_category: string;
+  severity: string;
+  total_exposure_dollars: string;
+  safe_to_resend: boolean;
+  subway_map_status: SubwayNode[];
+};
+export type IncidentDetail = {
+  report: DeterministicReport;
+  telemetry_events: TelemetryEvent[];
+  oms_orders: OMSOrder[];
+  sql_recon_breaks: ReconciliationBreak[];
+  ai_diagnosis?: AIDiagnosis | null;
+};
+export type Citation = { event_id: string; fix_tags: string[]; claim: string };
+export type AIDiagnosis = {
+  incident_id: string;
+  model_used: string;
+  tool_calls_executed: string[];
+  executive_summary: string;
+  proven_claims: Citation[];
+  ranked_hypotheses: { hypothesis: string; confidence: string; supporting_event_ids: string[]; ruled_out_alternatives: string[] }[];
+  explicit_unknowns: string[];
+  trader_squawk_update: string;
+  engineering_escalation_summary: string;
+  remediation_artifacts: { title: string; target_system: string; artifact_type: string; code_or_command: string; requires_human_approval: boolean; safety_warning: string }[];
+  safe_to_resend: boolean;
+  verification_passed: boolean;
+  verification_warnings: string[];
+};
+export type IntakeResult = {
+  modality: string;
+  model_used: string;
+  extracted_text: string;
+  extracted_cl_ord_ids: string[];
+  extracted_symbols: string[];
+  matched_incident_id: string | null;
+};
+export type IncidentListItem = IncidentSummary & { created_at: string; status: string };

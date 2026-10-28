@@ -132,6 +132,8 @@ async def incident_detail(incident_id: str) -> dict[str, Any]:
         "telemetry_events": db.get_incident_events(path, incident_id),
         "oms_orders": db.get_oms_orders(path, incident_id),
         "sql_recon_breaks": [item.model_dump(mode="json") for item in db.run_sql_reconciliation(path, incident_id)],
+        "ai_diagnosis": (db.get_ai_diagnosis(path, incident_id).model_dump(mode="json")
+                 if db.get_ai_diagnosis(path, incident_id) else None),
     }
 
 
